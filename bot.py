@@ -1,7 +1,5 @@
 # Kein @tree.command vor cleanup_old_messages gefunden – Datei blieb unverändert.
-from datetime import datetime, timezone
-import psutil
-import platform
+import os
 import smtplib
 from email.message import EmailMessage
 from fpdf import FPDF
@@ -76,23 +74,18 @@ def send_application_email(to_address, job_title):
 
 import os
 import json
+import json
 import re
 import logging
-import asyncio
 import urllib.parse
 import requests
-from datetime import datetime, timezone, timedelta
 from logging.handlers import TimedRotatingFileHandler
-from zoneinfo import ZoneInfo
 from bs4 import BeautifulSoup
 
 import discord
 from discord.ext import commands
-from discord import app_commands
 from discord.ui import View, Button
 from dotenv import load_dotenv
-
-# -------- Logging --------
 os.makedirs("logs", exist_ok=True)
 logger = logging.getLogger("jobbot")
 logger.setLevel(logging.INFO)
@@ -245,56 +238,21 @@ class FavoriteActionsView(View):
             await interaction.response.send_message("❌ Fehler beim Versand der Bewerbung.", ephemeral=True)
 
     @discord.ui.button(label="❌ Entfernen", style=discord.ButtonStyle.red)
-    async def remove_button(self, interaction: discord.Interaction, button: Button):
+    async def remove_button(self, interaction: discord.Interaction, _button: Button):
         jobs = load_saved_jobs()
         jobs = [j for j in jobs if j.get("id") != self.job.get("id")]
         with open(SAVED_JOBS_FILE, "w") as f:
             json.dump(jobs, f, indent=2)
         await interaction.response.send_message("🗑️ Job entfernt.", ephemeral=True)
 
-        super().__init__(timeout=None)
-        self.job = job
-
     @discord.ui.button(label="💾 Save", style=discord.ButtonStyle.green)
-    async def save_button(self, interaction: discord.Interaction, button: Button):
+    async def save_button(self, interaction: discord.Interaction, _button: Button):
         save_job(self.job)
         await interaction.response.send_message("✅ Job saved!", ephemeral=True)
 
     @discord.ui.button(label="⏭️ Skip", style=discord.ButtonStyle.grey)
-    async def skip_button(self, interaction: discord.Interaction, button: Button):
+    async def skip_button(self, interaction: discord.Interaction, _button: Button):
         await interaction.response.send_message("⏩ Skipped.", ephemeral=True)
-
-        params = {
-            "query": kw,
-            "location": config["location"],
-            "radius": config["radius"],
-            "limit": 3
-        }
-        try:
-            data = r.json()
-            for job in data.get("jobs", []):
-                job_id = job.get("id")
-                if job_id in seen_ids:
-                    continue
-                job_obj = {
-                    "id": job_id,
-                    "title": job.get("title"),
-                    "company": job.get("company", {}).get("name"),
-                    "location": job.get("location", {}).get("name"),
-                    "url": job.get("link")
-                }
-                jobs.append(job_obj)
-                seen_ids.add(job_id)
-        except Exception as e:
-            logger.warning(f"Joblift Fehler: {e}")
-
-def fetch_jobs_ihk():
-    # Optional: Scraping der IHK-Seiten – hier Dummy
-    return []
-
-def fetch_jobs_honeypot():
-    # Optional: Scraping von Honeypot.io – hier Dummy
-    return []
 
 async def search_jobs(days: int = 1):
     config = load_config()
@@ -363,5 +321,19 @@ async def search_jobs(days: int = 1):
             await channel.send(desc, view=JobView(job))
     except Exception as e:
         logger.error(f"Fehler beim Senden an Discord: {e}")
-@tree.command(name="favorites", description="Zeigt gespeicherte Jobs an")
+# Dummy JobView class to avoid NameError
+class JobView(View):
+    def __init__(self, job):
+        super().__init__(timeout=None)
+        self.job = job
 
+@tree.command(name="favorites", description="Zeigt gespeicherte Jobs an")
+async def favorites_command(interaction: discord.Interaction):
+    jobs = load_saved_jobs()
+    if not jobs:
+        await interaction.response.send_message("Keine gespeicherten Jobs gefunden.", ephemeral=True)
+        return
+    for job in jobs:
+        desc = f"💼 **{job['title']}**\n🏢 {job['company']}\n📍 {job['location']}\n🔗 {job['url']}"
+        await interaction.channel.send(desc, view=FavoriteActionsView(job))
+    await interaction.response.send_message("Gespeicherte Jobs gesendet.", ephemeral=True)
