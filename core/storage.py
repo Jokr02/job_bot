@@ -1,23 +1,34 @@
-# core/storage.py
-
 import json
 import os
-from core.logging import logger
 
-SAVED_JOBS_FILE = os.getenv("SAVED_JOBS_FILE", "saved_jobs.json")
+SEEN_FILE = "data/jobs_seen.json"
+SAVED_FILE = "data/saved_jobs.json"
+
+def load_seen_jobs():
+    if not os.path.exists(SEEN_FILE):
+        return set()
+    with open(SEEN_FILE) as f:
+        return set(json.load(f).get("posted_ids", []))
+
+def save_seen_jobs(ids):
+    with open(SEEN_FILE, "w") as f:
+        json.dump({"posted_ids": list(ids)}, f, indent=2)
 
 def save_job(job):
-    try:
-        if os.path.exists(SAVED_JOBS_FILE):
-            with open(SAVED_JOBS_FILE, "r") as f:
-                jobs = json.load(f)
-        else:
-            jobs = []
+    jobs = []
+    if os.path.exists(SAVED_FILE):
+        with open(SAVED_FILE) as f:
+            jobs = json.load(f)
+    jobs.append(job)
+    with open(SAVED_FILE, "w") as f:
+        json.dump(jobs, f, indent=2)
 
-        if not any(j.get("id") == job.get("id") for j in jobs):
-            jobs.append(job)
-            with open(SAVED_JOBS_FILE, "w") as f:
-                json.dump(jobs, f, indent=2)
-            logger.info(f"💾 Job gespeichert: {job['title']}")
-    except Exception as e:
-        logger.error(f"Fehler beim Speichern des Jobs: {e}")
+def load_saved_jobs():
+    if not os.path.exists(SAVED_FILE):
+        return []
+    with open(SAVED_FILE) as f:
+        return json.load(f)
+
+def clear_saved_jobs():
+    with open(SAVED_FILE, "w") as f:
+        json.dump([], f)
