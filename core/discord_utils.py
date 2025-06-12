@@ -2,7 +2,7 @@ import os
 import discord
 from discord.ui import Button, View
 from dotenv import load_dotenv
-from core.jobs import save_job
+from core.storage import save_job
 from core.logging import logger
 
 load_dotenv()
