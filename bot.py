@@ -1,3 +1,4 @@
+# Kein @tree.command vor cleanup_old_messages gefunden – Datei blieb unverändert.
 from datetime import datetime
 import psutil
 import platform
