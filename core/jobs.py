@@ -1,47 +1,72 @@
-
-import requests
 import os
-from core.config_utils import load_config
+import json
+import re
+import requests
+from datetime import datetime, timedelta
+from bs4 import BeautifulSoup
 from core.logging import logger
 
-APP_ID = os.getenv("ADZUNA_APP_ID")
-APP_KEY = os.getenv("ADZUNA_APP_KEY")
-COUNTRY = os.getenv("ADZUNA_COUNTRY", "de")
+CONFIG_FILE = os.path.join("data", "config.json")
+JOBS_SEEN_FILE = os.path.join("data", "jobs_seen.json")
+SAVED_JOBS_FILE = os.path.join("data", "saved_jobs.json")
 
-async def search_jobs(days: int = 1):
-    config = load_config()
-    keywords = config["keywords"]
-    jobs = []
-
-    for kw in keywords:
-        url = f"https://api.adzuna.com/v1/api/jobs/{COUNTRY}/search/1"
-        params = {
-            "app_id": APP_ID,
-            "app_key": APP_KEY,
-            "what": kw,
-            "where": config["location"],
-            "distance": config["radius"],
-            "max_days_old": days,
-            "results_per_page": 3,
+def load_config():
+    if not os.path.exists(CONFIG_FILE):
+        default = {
+            "location": "Berlin",
+            "radius": 50,
+            "keywords": ["IT Support"],
+            "work_type": "all",
+            "execution_time": "09:00"
         }
-        try:
-            r = requests.get(url, params=params, timeout=10)
-            data = r.json()
-            jobs += data.get("results", [])
-        except Exception as e:
-            logger.warning(f"Fehler bei Adzuna-Suche: {e}")
+        with open(CONFIG_FILE, "w") as f:
+            json.dump(default, f, indent=2)
+    with open(CONFIG_FILE) as f:
+        return json.load(f)
 
-    logger.info(f"🔍 Gefundene Jobs: {len(jobs)}")
-    return jobs
+def save_config(config):
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(config, f, indent=2)
 
-def start_job_loop(bot):
-    async def job_loop():
-        import asyncio
-        await bot.wait_until_ready()
-        while not bot.is_closed():
-            try:
-                await search_jobs()
-            except Exception as e:
-                logger.error(f"Fehler im Job-Loop: {e}")
-            await asyncio.sleep(3600)
-    bot.loop.create_task(job_loop())
+def load_seen_jobs():
+    if not os.path.exists(JOBS_SEEN_FILE):
+        with open(JOBS_SEEN_FILE, "w") as f:
+            json.dump({"posted_ids": []}, f)
+    with open(JOBS_SEEN_FILE) as f:
+        return set(json.load(f)["posted_ids"])
+
+def save_seen_jobs(job_ids):
+    with open(JOBS_SEEN_FILE, "w") as f:
+        json.dump({"posted_ids": list(job_ids)}, f, indent=2)
+
+def save_job(job):
+    jobs = []
+    if os.path.exists(SAVED_JOBS_FILE):
+        with open(SAVED_JOBS_FILE) as f:
+            jobs = json.load(f)
+    jobs.append(job)
+    with open(SAVED_JOBS_FILE, "w") as f:
+        json.dump(jobs, f, indent=2)
+
+def load_saved_jobs():
+    if os.path.exists(SAVED_JOBS_FILE):
+        with open(SAVED_JOBS_FILE) as f:
+            return json.load(f)
+    return []
+
+def clear_saved_jobs():
+    with open(SAVED_JOBS_FILE, "w") as f:
+        json.dump([], f)
+
+def export_saved_jobs():
+    jobs = load_saved_jobs()
+    lines = ["Titel,Unternehmen,Ort,URL"]
+    for job in jobs:
+        line = f'"{job["title"]}","{job["company"]}","{job["location"]}","{job["url"]}"'
+        lines.append(line)
+    return "\n".join(lines)
+
+def highlight_keywords(text, keywords):
+    for kw in sorted(keywords, key=len, reverse=True):
+        text = re.sub(rf"(?i)\b({re.escape(kw)})\b", r"**\1**", text)
+    return text
