@@ -2,7 +2,7 @@
 from fpdf import FPDF
 import os
 
-def generate_cover_letter(job_title: str, template_path="anschreiben_vorlage.txt", output_path="anschreiben.pdf"):
+def generate_cover_letter(job_title: str, template_path="data/anschreiben_vorlage.txt", output_path="data/anschreiben.pdf"):
     with open(template_path, encoding="utf-8") as f:
         text = f.read()
     text = text.replace("{{job_title}}", job_title)
