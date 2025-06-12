@@ -479,35 +479,7 @@ async def cleanup_old_messages():
 async def schedule_daily_search():
     pass
 
-@bot.event
-async def on_ready():
-    logger.info(f"✅ Eingeloggt als {bot.user}")
-    await tree.sync(guild=discord.Object(id=1380610208602001448))
-# Starte täglichen Bereinigungs-Task
-    async def cleanup_loop():
-        await bot.wait_until_ready()
-        while not bot.is_closed():
-            try:
-                await cleanup_old_messages()
-            except Exception as e:
-                logger.error(f"Fehler in cleanup_loop: {e}")
-                send_error_to_webhook(f"Fehler in cleanup_loop: {e}")
-            await asyncio.sleep(86400)  # 24h warten
 
-    bot.loop.create_task(cleanup_loop())
-    await cleanup_old_messages()
-# Starte wiederkehrende Jobsuche jede Stunde
-    async def hourly_job_loop():
-        await bot.wait_until_ready()
-        while not bot.is_closed():
-            try:
-                await search_jobs()
-            except Exception as e:
-                logger.error(f"Fehler im stündlichen Job-Loop: {e}")
-                send_error_to_webhook(f"Fehler im Jobloop: {e}")
-            await asyncio.sleep(3600)  # 1 Stunde warten
-
-    bot.loop.create_task(hourly_job_loop())
     if ERROR_WEBHOOK_URL:
         try:
             bot_version = '1.0.0'
@@ -528,6 +500,15 @@ async def on_ready():
     await schedule_daily_search()
 
 # -------- Bot starten --------
+
+@bot.event
+async def on_ready():
+    logger.info(f"✅ Eingeloggt als {bot.user}")
+    await tree.sync(guild=discord.Object(id=1380610208602001448))
+    await cleanup_old_messages()
+    logger.info("🌐 Slash-Commands synchronisiert")
+
+
 bot.run(TOKEN)
 
 
