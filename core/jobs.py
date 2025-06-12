@@ -41,3 +41,6 @@ async def search_jobs():
         for job in new_jobs:
             await send_job_to_discord(job)
         save_seen_jobs(seen_ids)
+
+def start_job_loop(bot):
+    bot.loop.create_task(job_loop())
