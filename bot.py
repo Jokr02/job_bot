@@ -459,9 +459,6 @@ async def send_testmail(interaction: discord.Interaction, email: str):
 
     message = f"✅ Testmail gesendet an {email}" if success else "❌ Fehler beim Versand der Testmail."
     await interaction.followup.send(message, ephemeral=True)
-@tree.command(name="search_jobs", description="Startet die Jobsuche manuell")
-@bot.event
-
 async def cleanup_old_messages():
     try:
         channel = await bot.fetch_channel(CHANNEL_ID)
