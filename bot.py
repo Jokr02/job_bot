@@ -459,40 +459,6 @@ async def send_testmail(interaction: discord.Interaction, email: str):
     message = f"✅ Testmail gesendet an {email}" if success else "❌ Fehler beim Versand der Testmail."
     await interaction.followup.send(message, ephemeral=True)
 @tree.command(name="search_jobs", description="Startet die Jobsuche manuell")
-async def search_jobs_now(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
-    try:
-        await search_jobs()
-        await interaction.followup.send("🔍 Jobsuche manuell ausgeführt.", ephemeral=True)
-    except Exception as e:
-        logger.error(f"Fehler bei /search_jobs: {e}")
-        send_error_to_webhook(f"Fehler bei /search_jobs: {e}")
-@tree.command(name="search_jobs_14", description="Sucht Jobs aus den letzten 14 Tagen")
-async def search_jobs_14(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
-    try:
-        await search_jobs(days=14)
-        await interaction.followup.send("🔎 Jobsuche (14 Tage) wurde gestartet.", ephemeral=True)
-    except Exception as e:
-        logger.error(f"Fehler bei /search_jobs_14: {e}")
-        send_error_to_webhook(f"Fehler bei /search_jobs_14: {e}")
-
-@tree.command(name="search_jobs_days", description="Sucht Jobs der letzten x Tage")
-@app_commands.describe(tage="Anzahl der letzten Tage")
-async def search_jobs_days(interaction: discord.Interaction, tage: int):
-    await interaction.response.defer(ephemeral=True)
-    try:
-        await search_jobs(days=tage)
-        await interaction.followup.send(f"🔎 Jobsuche (letzte {tage} Tage) wurde gestartet.", ephemeral=True)
-    except Exception as e:
-        logger.error(f"Fehler bei /search_jobs_days: {e}")
-        send_error_to_webhook(f"Fehler bei /search_jobs_days: {e}")
-
-async def search_jobs_now(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
-    await search_jobs()
-    await interaction.followup.send("🔍 Jobsuche manuell ausgeführt.", ephemeral=True)
-
 @bot.event
 
 async def cleanup_old_messages():
@@ -512,6 +478,7 @@ async def cleanup_old_messages():
         logger.error(f"Fehler beim Aufräumen alter Nachrichten: {e}")
         send_error_to_webhook(f"Fehler beim Aufräumen alter Nachrichten: {e}")
 
+@bot.event
 async def on_ready():
     logger.info(f"✅ Eingeloggt als {bot.user}")
     await tree.sync()
