@@ -1,5 +1,7 @@
 # Kein @tree.command vor cleanup_old_messages gefunden – Datei blieb unverändert.
-import os
+from datetime import datetime, timezone
+import psutil
+import platform
 import smtplib
 from email.message import EmailMessage
 from fpdf import FPDF
@@ -74,18 +76,23 @@ def send_application_email(to_address, job_title):
 
 import os
 import json
-import json
 import re
 import logging
+import asyncio
 import urllib.parse
 import requests
+from datetime import datetime, timezone, timedelta
 from logging.handlers import TimedRotatingFileHandler
+from zoneinfo import ZoneInfo
 from bs4 import BeautifulSoup
 
 import discord
 from discord.ext import commands
+from discord import app_commands
 from discord.ui import View, Button
 from dotenv import load_dotenv
+
+# -------- Logging --------
 os.makedirs("logs", exist_ok=True)
 logger = logging.getLogger("jobbot")
 logger.setLevel(logging.INFO)
@@ -238,21 +245,56 @@ class FavoriteActionsView(View):
             await interaction.response.send_message("❌ Fehler beim Versand der Bewerbung.", ephemeral=True)
 
     @discord.ui.button(label="❌ Entfernen", style=discord.ButtonStyle.red)
-    async def remove_button(self, interaction: discord.Interaction, _button: Button):
+    async def remove_button(self, interaction: discord.Interaction, button: Button):
         jobs = load_saved_jobs()
         jobs = [j for j in jobs if j.get("id") != self.job.get("id")]
         with open(SAVED_JOBS_FILE, "w") as f:
             json.dump(jobs, f, indent=2)
         await interaction.response.send_message("🗑️ Job entfernt.", ephemeral=True)
 
+        super().__init__(timeout=None)
+        self.job = job
+
     @discord.ui.button(label="💾 Save", style=discord.ButtonStyle.green)
-    async def save_button(self, interaction: discord.Interaction, _button: Button):
+    async def save_button(self, interaction: discord.Interaction, button: Button):
         save_job(self.job)
         await interaction.response.send_message("✅ Job saved!", ephemeral=True)
 
     @discord.ui.button(label="⏭️ Skip", style=discord.ButtonStyle.grey)
-    async def skip_button(self, interaction: discord.Interaction, _button: Button):
+    async def skip_button(self, interaction: discord.Interaction, button: Button):
         await interaction.response.send_message("⏩ Skipped.", ephemeral=True)
+
+        params = {
+            "query": kw,
+            "location": config["location"],
+            "radius": config["radius"],
+            "limit": 3
+        }
+        try:
+            data = r.json()
+            for job in data.get("jobs", []):
+                job_id = job.get("id")
+                if job_id in seen_ids:
+                    continue
+                job_obj = {
+                    "id": job_id,
+                    "title": job.get("title"),
+                    "company": job.get("company", {}).get("name"),
+                    "location": job.get("location", {}).get("name"),
+                    "url": job.get("link")
+                }
+                jobs.append(job_obj)
+                seen_ids.add(job_id)
+        except Exception as e:
+            logger.warning(f"Joblift Fehler: {e}")
+
+def fetch_jobs_ihk():
+    # Optional: Scraping der IHK-Seiten – hier Dummy
+    return []
+
+def fetch_jobs_honeypot():
+    # Optional: Scraping von Honeypot.io – hier Dummy
+    return []
 
 async def search_jobs(days: int = 1):
     config = load_config()
@@ -321,19 +363,166 @@ async def search_jobs(days: int = 1):
             await channel.send(desc, view=JobView(job))
     except Exception as e:
         logger.error(f"Fehler beim Senden an Discord: {e}")
-# Dummy JobView class to avoid NameError
-class JobView(View):
-    def __init__(self, job):
-        super().__init__(timeout=None)
-        self.job = job
-
 @tree.command(name="favorites", description="Zeigt gespeicherte Jobs an")
-async def favorites_command(interaction: discord.Interaction):
+async def favorites(interaction: discord.Interaction):
     jobs = load_saved_jobs()
     if not jobs:
-        await interaction.response.send_message("Keine gespeicherten Jobs gefunden.", ephemeral=True)
+        await interaction.response.send_message("📭 Keine gespeicherten Jobs gefunden.", ephemeral=True)
         return
+
+    msg_lines = []
+    for job in jobs[-10:]:
+        msg_lines.append(f"💼 **{job['title']}**\n🏢 {job['company']}\n📍 {job['location']}\n🔗 {job['url']}")
+    await interaction.response.send_message("\n\n".join(msg_lines), ephemeral=True)
+
+@tree.command(name="update_config", description="Aktualisiert Suchparameter für Jobs")
+@app_commands.describe(
+    location="Ort der Jobsuche",
+    radius="Suchradius in Kilometern",
+    keywords="Kommagetrennte Keywords (z. B. linux, vmware)",
+    work_type="Arbeitsform: all, remote, hybrid, onsite"
+)
+async def update_config(interaction: discord.Interaction, location: str, radius: int, keywords: str, work_type: str = "all"):
+    config = load_config()
+    config["location"] = location
+    config["radius"] = radius
+    config["keywords"] = [kw.strip() for kw in keywords.split(",")]
+    config["work_type"] = work_type
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(config, f, indent=2)
+    await interaction.response.send_message("✅ Konfiguration aktualisiert!", ephemeral=True)
+
+    jobs = load_saved_jobs()
+    if not jobs:
+        await interaction.response.send_message("📭 Keine gespeicherten Jobs gefunden.", ephemeral=True)
+        return
+
+    msg_lines = []
+    for job in jobs[-10:]:
+        msg_lines.append(f"💼 **{job['title']}**\n🏢 {job['company']}\n📍 {job['location']}\n🔗 {job['url']}")
+    await interaction.response.send_message("\n\n".join(msg_lines), ephemeral=True)
+
+@tree.command(name="clear_favorites", description="Löscht alle gespeicherten Jobs")
+async def clear_favorites(interaction: discord.Interaction):
+    clear_saved_jobs()
+    await interaction.response.send_message("🧹 Alle gespeicherten Jobs wurden gelöscht.", ephemeral=True)
+
+@tree.command(name="config", description="Zeigt aktuelle Konfiguration")
+async def zeige_config(interaction: discord.Interaction):
+    config = load_config()
+    text = f"🌍 Ort: {config['location']}\n📏 Radius: {config['radius']} km\n🔎 Keywords: {', '.join(config['keywords'])}\n⏰ Uhrzeit: {config['execution_time']}"
+    await interaction.response.send_message(text, ephemeral=True)
+
+
+@tree.command(name="set_parameters", description="Setzt Ort, Radius und Keywords für die Jobsuche")
+@app_commands.describe(
+    location="Ort der Jobsuche",
+    radius="Suchradius in Kilometern",
+    keywords="Kommagetrennte Stichwörter (z. B. linux, vmware, windows)"
+)
+async def set_parameters(interaction: discord.Interaction, location: str, radius: int, keywords: str):
+    config = load_config()
+    config["location"] = location
+    config["radius"] = radius
+    config["keywords"] = [k.strip() for k in keywords.split(",")]
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(config, f, indent=2)
+    await interaction.response.send_message("✅ Suchparameter wurden aktualisiert.", ephemeral=True)
+
+
+@tree.command(name="set_time", description="Setzt die Uhrzeit für tägliche Suche (z.B. 12:00)")
+@app_commands.describe(uhrzeit="Format: HH:MM (24h)")
+async def set_time(interaction: discord.Interaction, uhrzeit: str):
+    await interaction.response.defer(ephemeral=True)
+    try:
+        datetime.strptime(uhrzeit, "%H:%M")
+        config = load_config()
+        config["execution_time"] = uhrzeit
+        with open(CONFIG_FILE, "w") as f:
+            json.dump(config, f, indent=2)
+
+        global daily_search_task
+        if daily_search_task:
+            daily_search_task.cancel()
+
+        daily_search_task = asyncio.create_task(schedule_daily_search())
+
+        await interaction.followup.send(f"⏰ Neue Uhrzeit gesetzt: {uhrzeit} – tägliche Suche wurde neu eingeplant.", ephemeral=True)
+    except ValueError:
+        await interaction.followup.send("❌ Ungültiges Format. Bitte HH:MM verwenden (z. B. 08:30)", ephemeral=True)
+@tree.command(name="send_testmail", description="Sendet eine Testbewerbung an eine E-Mail-Adresse")
+@app_commands.describe(email="Zieladresse für die Test-E-Mail")
+async def send_testmail(interaction: discord.Interaction, email: str):
+    await interaction.response.defer(ephemeral=True)
+
+    success = send_application_email(email, "Test-Job IT Support")
+
+    message = f"✅ Testmail gesendet an {email}" if success else "❌ Fehler beim Versand der Testmail."
+    await interaction.followup.send(message, ephemeral=True)
+async def cleanup_old_messages():
+    try:
+        channel = await bot.fetch_channel(CHANNEL_ID)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+        deleted = 0
+        async for message in channel.history(limit=100):
+            if message.author == bot.user and message.created_at < cutoff:
+                await message.delete()
+                deleted += 1
+        if deleted:
+            logger.info(f"🧹 {deleted} alte Nachrichten gelöscht.")
+            if ERROR_WEBHOOK_URL:
+                requests.post(ERROR_WEBHOOK_URL, json={"content": f"🧹 {deleted} alte Bot-Nachrichten im Channel gelöscht."})
+    except Exception as e:
+        logger.error(f"Fehler beim Aufräumen alter Nachrichten: {e}")
+        send_error_to_webhook(f"Fehler beim Aufräumen alter Nachrichten: {e}")
+
+async def schedule_daily_search():
+    pass
+
+
+    if ERROR_WEBHOOK_URL:
+        try:
+            bot_version = '1.0.0'
+            timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            ram_total = round(psutil.virtual_memory().total / (1024**3), 2)
+            ram_used = round(psutil.virtual_memory().used / (1024**3), 2)
+            hostname = platform.node()
+            sysinfo = f"**Version:** {bot_version}\n**Zeit:** {timestamp}\n**System:** {hostname}\n**RAM:** {ram_used}/{ram_total} GB"
+            msg = f"✅ JobBot gestartet als **{bot.user}**\n{sysinfo}"
+            requests.post(ERROR_WEBHOOK_URL, json={"content": msg})
+        except Exception as e:
+            logger.error(f"Fehler beim erweiterten Healthcheck: {e}")
+    if ERROR_WEBHOOK_URL:
+        try:
+            requests.post(ERROR_WEBHOOK_URL, json={"content": f"✅ JobBot gestartet und verbunden als **{bot.user}**"})
+        except Exception as e:
+            logger.error(f"Fehler beim Healthcheck-Webhook: {e}")
+    await schedule_daily_search()
+
+# -------- Bot starten --------
+
+@bot.event
+async def on_ready():
+    logger.info(f"✅ Eingeloggt als {bot.user}")
+    await tree.sync(guild=discord.Object(id=1380610208602001448))
+    await cleanup_old_messages()
+    logger.info("🌐 Slash-Commands synchronisiert")
+
+
+bot.run(TOKEN)
+
+
+
+async def favorites(interaction: discord.Interaction):
+    jobs = load_saved_jobs()
+    if not jobs:
+        await interaction.response.send_message("📭 Keine gespeicherten Jobs gefunden.", ephemeral=True)
+        return
+
     for job in jobs:
-        desc = f"💼 **{job['title']}**\n🏢 {job['company']}\n📍 {job['location']}\n🔗 {job['url']}"
-        await interaction.channel.send(desc, view=FavoriteActionsView(job))
-    await interaction.response.send_message("Gespeicherte Jobs gesendet.", ephemeral=True)
+        embed = discord.Embed(title=job["title"], description=f"{job.get("company", "")}", color=0x00ff00)
+        embed.add_field(name="Ort", value=job.get("location", ""), inline=True)
+        embed.add_field(name="Link", value=job.get("url", ""), inline=False)
+        await interaction.channel.send(embed=embed, view=FavoriteActionsView(job))
+    await interaction.response.send_message("✅ Favoriten geladen.", ephemeral=True)
+
