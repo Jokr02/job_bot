@@ -476,6 +476,9 @@ async def cleanup_old_messages():
         logger.error(f"Fehler beim Aufräumen alter Nachrichten: {e}")
         send_error_to_webhook(f"Fehler beim Aufräumen alter Nachrichten: {e}")
 
+async def schedule_daily_search():
+    pass
+
 @bot.event
 async def on_ready():
     logger.info(f"✅ Eingeloggt als {bot.user}")
@@ -542,6 +545,3 @@ async def favorites(interaction: discord.Interaction):
         await interaction.channel.send(embed=embed, view=FavoriteActionsView(job))
     await interaction.response.send_message("✅ Favoriten geladen.", ephemeral=True)
 
-
-async def schedule_daily_search():
-    pass
