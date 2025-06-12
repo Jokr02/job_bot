@@ -156,6 +156,14 @@ def clear_saved_jobs():
     with open(SAVED_JOBS_FILE, "w") as f:
         json.dump([], f)
 
+
+def send_error_to_webhook(error_text):
+    if ERROR_WEBHOOK_URL:
+        try:
+            requests.post(ERROR_WEBHOOK_URL, json={"content": f"🚨 Bot Error:\n```{error_text}```"})
+        except Exception as e:
+            logger.error(f"Fehler beim Senden an Webhook: {e}")
+
 def highlight_keywords(text, keywords):
     for kw in sorted(keywords, key=len, reverse=True):
         text = re.sub(rf"(?i)\\b({re.escape(kw)})\\b", r"**\\1**", text)
