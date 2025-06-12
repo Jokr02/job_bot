@@ -481,7 +481,7 @@ async def cleanup_old_messages():
 @bot.event
 async def on_ready():
     logger.info(f"✅ Eingeloggt als {bot.user}")
-    await tree.sync()
+    await tree.sync(guild=discord.Object(id=1380610208602001448))
 # Starte täglichen Bereinigungs-Task
     async def cleanup_loop():
         await bot.wait_until_ready()
