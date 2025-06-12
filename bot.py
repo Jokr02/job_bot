@@ -1,5 +1,5 @@
 # Kein @tree.command vor cleanup_old_messages gefunden – Datei blieb unverändert.
-from datetime import datetime
+from datetime import datetime, timezone
 import psutil
 import platform
 import smtplib
@@ -81,7 +81,7 @@ import logging
 import asyncio
 import urllib.parse
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from logging.handlers import TimedRotatingFileHandler
 from zoneinfo import ZoneInfo
 from bs4 import BeautifulSoup
@@ -462,7 +462,7 @@ async def send_testmail(interaction: discord.Interaction, email: str):
 async def cleanup_old_messages():
     try:
         channel = await bot.fetch_channel(CHANNEL_ID)
-        cutoff = datetime.utcnow() - timedelta(days=30)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=30)
         deleted = 0
         async for message in channel.history(limit=100):
             if message.author == bot.user and message.created_at < cutoff:
@@ -541,3 +541,7 @@ async def favorites(interaction: discord.Interaction):
         embed.add_field(name="Link", value=job.get("url", ""), inline=False)
         await interaction.channel.send(embed=embed, view=FavoriteActionsView(job))
     await interaction.response.send_message("✅ Favoriten geladen.", ephemeral=True)
+
+
+async def schedule_daily_search():
+    pass
