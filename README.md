@@ -31,7 +31,7 @@ discord-jobbot/
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/yourname/discord-jobbot.git
+git clone https://github.com/Jokr02/discord-jobbot.git
 cd discord-jobbot
 ```
 2. Install dependencies
