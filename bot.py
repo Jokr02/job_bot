@@ -231,8 +231,10 @@ def send_application(job):
         server.starttls()
         server.login(SMTP_USER, SMTP_PASSWORD)
         server.send_message(msg)
+@tree.command(name="ping", description="Antwortet mit Pong!")
+async def ping(interaction: Interaction):
+    await interaction.response.send_message("Pong!", ephemeral=True)
 
-@bot.event
 @bot.event
 async def on_ready():
     guild_id = os.getenv("DISCORD_GUILD_ID")
