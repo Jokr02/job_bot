@@ -81,34 +81,34 @@ python bot.py
 /clear_chat – remove bot messages from channel
 ```
 📦 Export Options
-Save jobs as favorites
+-  Save jobs as favorites
 
-Export each as a detailed PDF with AI summary
+-  Export each as a detailed PDF with AI summary
 
-AI summarizes:
+ AI summarizes:
 
-Job tasks
+-  Job tasks
 
-Required qualifications
+-  Required qualifications
 
-Company overview
+-  Company overview
 
 🧠 AI Integration
-Uses OpenAI's GPT (gpt-3.5-turbo, gpt-4o, etc.)
+-  Uses OpenAI's GPT (gpt-3.5-turbo, gpt-4o, etc.)
 
-Summary is generated from scraped job page content
+-  Summary is generated from scraped job page content
 
-Make sure your API key has sufficient quota
+-  Make sure your API key has sufficient quota
 
 📋 TODO / Ideas
-Export all favorites as ZIP
+-  Export all favorites as ZIP
 
-Multi-language support
+-  Multi-language support
 
-OAuth login for LinkedIn or StepStone API (future)
+-  OAuth login for LinkedIn or StepStone API (future)
 
 📄 License
-MIT – feel free to use and improve this bot.
+-  MIT – feel free to use and improve this bot.
 
 🤝 Contributions
-Pull requests are welcome! For major changes, please open an issue first to discuss your idea.
+-  Pull requests are welcome! For major changes, please open an issue first to discuss your idea.
