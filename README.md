@@ -66,11 +66,11 @@ Edit config.json:
 ```bash
 python bot.py
 ```
-Make sure the bot has:
+-  Make sure the bot has:
 
-Message Content Intent enabled in the Discord Developer Portal
+-  Message Content Intent enabled in the Discord Developer Portal
 
-Necessary permissions in your server (Send Messages, Manage Messages, Use Slash Commands)
+-  Necessary permissions in your server (Send Messages, Manage Messages, Use Slash Commands)
 
 📌 Slash Commands
 /search_jobs_days days:X – find jobs from the past X days
