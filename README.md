@@ -1,127 +1,113 @@
-# 💼 Discord JobBot – Modular Edition
+# 🤖 Discord JobBot
 
-Ein automatisierter Discord-Bot, der täglich oder manuell nach neuen IT-Jobs sucht (Adzuna API) und diese in einem Kanal postet. Bewerbungen können direkt über Discord per Button versendet werden. Modular aufgebaut für einfache Erweiterbarkeit.
+A Discord bot that searches for job offers from multiple platforms, allows saving favorites, generates PDFs with AI summaries, and supports daily automated searches.
 
 ---
 
 ## 🚀 Features
 
-- 🔍 **Jobsuche** via Adzuna (andere APIs erweiterbar)
-- 🕐 **Stündliche Jobsuche** + `/search_jobs_days`
-- 💬 Slash-Commands & Discord UI Buttons
-- 💾 Jobs speichern, löschen, exportieren
-- 📤 Bewerbung per E-Mail mit PDF-Anschreiben & Zeugnissen
-- 📎 PDF-Generierung aus Textvorlage (`anschreiben_vorlage.txt`)
-- 🧹 Automatische Löschung alter Discord-Nachrichten (>30 Tage)
-- 📡 Fehler- & Healthcheck via Discord Webhook
-- 🔌 Modularer Aufbau (`core/`, `commands/`, `ui/`)
+- `/search_jobs_days days:X` – fetch jobs from the past `X` days
+- `/favorites` – view your saved jobs (with PDF export and apply prep)
+- 📄 Export job ads as individual PDFs
+- ✉️ AI-generated job summaries using OpenAI
+- 📬 Daily automated job search based on `config.json`
+- 🧹 `/clear_chat` command to clean up test messages
+- 🔐 Configurable via `.env` and `config.json`
 
 ---
 
-## 🧩 Projektstruktur
+## 🗂️ Folder Structure
 
-```bash
 discord-jobbot/
-├── bot.py                  # Startpunkt des Bots
-├── config.json             # Keywords, Ort, Radius etc.
-├── .env                    # API-Keys, Tokens, SMTP etc.
-├── core/
-│   ├── jobs.py             # Adzuna API Jobsuche + Loop
-│   ├── config_utils.py     # Konfiguration lesen/schreiben
-│   ├── emailer.py          # Bewerbung versenden
-│   ├── pdf_generator.py    # PDF-Anschreiben erstellen
-│   ├── logging.py          # Logging + Webhook
-│   └── cleanup.py          # Alte Nachrichten löschen
-├── ui/
-│   └── views.py            # Discord Buttons (Bewerben / Löschen)
-├── commands/
-│   └── jobs.py             # Slash-Commands wie /search_jobs_days
-├── data/
-│   └── saved_jobs.json     # Gespeicherte Favoriten
-```
+├── bot.py # Main bot script
+├── config.json # Bot & search settings
+├── saved_jobs.json # Saved jobs (favorites)
+├── saved_pdfs/ # Generated job PDFs
+├── .env # Environment variables
+├── requirements.txt # Python dependencies
 
----
+## 🛠️ Installation
 
-## ⚙️ Einrichtung
-
-### 1. Repository klonen
+### 1. Clone the repo
 
 ```bash
-git clone https://github.com/DEIN_USERNAME/discord-jobbot.git
+git clone https://github.com/yourname/discord-jobbot.git
 cd discord-jobbot
 ```
-
-### 2. Abhängigkeiten installieren
-
+2. Install dependencies
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
-
-### 3. `.env` Datei anlegen
+3. Create .env
+Create a file called .env in the project root:
 
 ```env
-DISCORD_BOT_TOKEN=your_discord_token
-DISCORD_CHANNEL_ID=123456789012345678
+DISCORD_TOKEN=your_discord_bot_token
+DISCORD_CHANNEL_ID=1234567890
+JOB_WEBHOOK_URL=https://discord.com/api/webhooks/...
 ERROR_WEBHOOK_URL=https://discord.com/api/webhooks/...
-
-ADZUNA_APP_ID=your_adzuna_id
-ADZUNA_APP_KEY=your_adzuna_key
-ADZUNA_COUNTRY=de
-
-SENDER_NAME=Max Mustermann
-SMTP_SERVER=smtp.example.com
-SMTP_PORT=587
-SMTP_USER=your@email.com
-SMTP_PASSWORD=yourpassword
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-3.5-turbo
 ```
+⚙️ Configuration
+Edit config.json:
 
----
-
-## 💬 Befehle
-
-| Befehl               | Beschreibung                                  |
-|----------------------|-----------------------------------------------|
-| `/search_jobs`       | Startet Jobsuche manuell                      |
-| `/search_jobs_days`  | Suche nach Jobs der letzten X Tage           |
-| `/favorites`         | Zeigt gespeicherte Jobs                       |
-| `/clear_favorites`   | Löscht alle gespeicherten Jobs                |
-| `/export_favorites`  | Exportiert gespeicherte Jobs als CSV          |
-
----
-
-## 📄 Beispiel: Anschreiben-Vorlage
-
-Datei: `anschreiben_vorlage.txt`
-
-```txt
-Bewerbung als {{job_title}}
-
-Sehr geehrte Damen und Herren,
-...
-
-Mit freundlichen Grüßen
-{{sender_name}}
+```json
+{
+  "location": "Erfurt",
+  "radius": 20,
+  "keywords": ["Python", "Entwickler"],
+  "daily_search_time": "09:00"
+}
 ```
-
----
-
-## 🧪 Starten
-
+▶️ Running the Bot
 ```bash
 python bot.py
 ```
+Make sure the bot has:
 
----
+Message Content Intent enabled in the Discord Developer Portal
 
-## ✅ To-Do & Erweiterungen
+Necessary permissions in your server (Send Messages, Manage Messages, Use Slash Commands)
 
-- [x] Kununu-Bewertung integrieren
-- [ ] Weitere APIs: Agentur für Arbeit, Stepstone
-- [ ] UI: Bewerbungsvorschau oder Ranking
-- [ ] Web-GUI zur Konfiguration
+📌 Slash Commands
+/search_jobs_days days:X – find jobs from the past X days
 
----
+/favorites – show saved jobs with action buttons
 
-MIT License © 2025
+/clear_chat – remove bot messages from channel
+
+📦 Export Options
+Save jobs as favorites
+
+Export each as a detailed PDF with AI summary
+
+AI summarizes:
+
+Job tasks
+
+Required qualifications
+
+Company overview
+
+🧠 AI Integration
+Uses OpenAI's GPT (gpt-3.5-turbo, gpt-4o, etc.)
+
+Summary is generated from scraped job page content
+
+Make sure your API key has sufficient quota
+
+📋 TODO / Ideas
+Export all favorites as ZIP
+
+Multi-language support
+
+OAuth login for LinkedIn or StepStone API (future)
+
+📄 License
+MIT – feel free to use and improve this bot.
+
+🤝 Contributions
+Pull requests are welcome! For major changes, please open an issue first to discuss your idea.
