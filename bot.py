@@ -585,15 +585,24 @@ async def search_jobs(days: int = 10):
     try:
         channel = await bot.fetch_channel(CHANNEL_ID)
         for job in all_jobs:
-            desc = f"💼 **{highlight_keywords(job['title'], keywords)}**\n🏢 {job['company']}\n📍 {job['location']}\n🔗 {job['url']}"
-            
-            # Kununu-Rating versuchen (alle Quellen!)
-            company_clean = normalize_company_name(job['company'])
-            kununu = fetch_kununu_rating(normalize_company_name(job['company'])) if job.get('company') else None
-            if kununu:
-                desc += f"\n✨ {kununu}"
+            # Embed vorbereiten
+            embed = discord.Embed(
+                title=highlight_keywords(job["title"], keywords),
+                color=0x3498db,
+                url=job["url"]
+            )
+            embed.add_field(name="Unternehmen", value=job.get("company", "Unbekannt"), inline=True)
+            embed.add_field(name="Ort", value=job.get("location", "Unbekannt"), inline=True)
 
-            await channel.send(desc, view=JobActionsView(job))
+            # Kununu-Rating
+            if job.get("company"):
+                company_clean = normalize_company_name(job["company"])
+                kununu = fetch_kununu_rating(company_clean)
+                if kununu:
+                    embed.add_field(name="Kununu", value=kununu, inline=False)
+
+            await channel.send(embed=embed, view=JobActionsView(job))
+
 
     except Exception as e:
         logger.error(f"Fehler beim Senden an Discord: {e}")
@@ -652,7 +661,9 @@ async def clear_favorites(interaction: discord.Interaction):
 async def zeige_config(interaction: discord.Interaction):
     config = load_config()
     text = f"🌍 Ort: {config['location']}\n📏 Radius: {config['radius']} km\n🔎 Keywords: {', '.join(config['keywords'])}\n⏰ Uhrzeit: {config['execution_time']}\nOrt: {config['work_type']}"
-    await interaction.response.send_message(text, ephemeral=True)
+    await interaction.response.defer(ephemeral=True)
+    await interaction.followup.send(text)
+
 
 
 
