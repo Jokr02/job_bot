@@ -21,7 +21,7 @@ A feature-rich Discord bot for finding, managing, and applying to jobs via the A
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/yourusername/discord-jobbot.git
+git clone https://github.com/Jokr02/discord-jobbot.git
 cd discord-jobbot
 ```
 
