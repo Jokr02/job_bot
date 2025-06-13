@@ -166,10 +166,6 @@ def fetch_arbeitsagentur_jobs(params):
 
 @tree.command(name="ping", description="Antwortet mit Pong!")
 async def ping(interaction: Interaction):
-    await interaction.response.send_message("Pong!", ephemeral=True)
-print("Registering /ping command")
-@tree.command(name="ping", description="Antwortet mit Pong!")
-async def ping(interaction: Interaction):
     await interaction.response.send_message("🏓 Pong!", ephemeral=True)
 
 @tree.command(name="favorites", description="Show favorite jobs")
