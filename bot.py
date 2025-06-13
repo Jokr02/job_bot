@@ -6,6 +6,7 @@ import requests
 import json
 import os
 from dotenv import load_dotenv
+load_dotenv(dotenv_path="/opt/discord-jobbot/.env")
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
