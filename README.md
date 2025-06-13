@@ -17,7 +17,7 @@ A Discord bot that searches for job offers from multiple platforms, allows savin
 ---
 
 ## 🗂️ Folder Structure
-
+```
 discord-jobbot/
 ├── bot.py # Main bot script
 ├── config.json # Bot & search settings
@@ -25,7 +25,7 @@ discord-jobbot/
 ├── saved_pdfs/ # Generated job PDFs
 ├── .env # Environment variables
 ├── requirements.txt # Python dependencies
-
+```
 ## 🛠️ Installation
 
 ### 1. Clone the repo
