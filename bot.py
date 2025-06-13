@@ -251,7 +251,7 @@ async def on_ready():
     print(f"Bot logged in as {bot.user}")
     channel_id = os.getenv("DISCORD_CHANNEL_ID")
     if channel_id:
-        channel = bot.get_channel(int(channel_id))
+        channel = bot.get_channel(int(1382089459339886742))
         if channel:
             await channel.send("✅ Der Bot ist jetzt online und bereit.")
 
