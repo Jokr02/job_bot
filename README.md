@@ -1,147 +1,128 @@
-# Discord JobBot
+## JobBot - Discord Job Search Bot
 
-A feature-rich Discord bot for finding, managing, and applying to jobs via the Adzuna API and other job boards like Agentur für Arbeit, IHK, and Honeypot. The bot supports job searching, job saving, PDF export, OpenAI-powered summarization, and automated email application sending.
-
----
-
-## 🧩 Features
-
-- 🔍 Job search via Adzuna API, Agentur, Honeypot, and IHK
-- 💾 Save jobs to favorites
-- 📤 Apply to jobs via email with auto-generated PDF
-- 📄 Export job details as a summarized PDF (OpenAI powered)
-- 🧹 Clear job messages with `/clear_chat`
-- 📅 Schedule daily job searches
-- ✉️ Send test job applications
-- 🔧 Full configuration via slash commands
+JobBot is a feature-rich Discord bot that automatically fetches job listings from various sources, displays them in a Discord channel, and allows for interaction, filtering, saving, and even application preparation.
 
 ---
 
-## 🛠 Installation
+### 🌟 Features
 
-### 1. Clone the Repository
-```bash
-git clone https://github.com/Jokr02/discord-jobbot.git
-cd discord-jobbot
+* Scheduled job search via Adzuna, Honeypot, IHK, Joblift
+* Manual job search via `/search_jobs_days`
+* Save favorites with buttons and manage via `/favourites`
+* One-click PDF export for saved jobs
+* Email application preparation with preview
+* OpenAI-powered job description summarization
+* Kununu rating integration (⭐ shown in job postings)
+* Configurable work type filter via `/update_work_type`
+* Clear chat with `/clear_chat`
+* Admin commands for updating config and testing
+
+---
+
+### 📂 Project Structure
+
+```
+/opt/discord-jobbot/
+├── bot.py                # Main bot file
+├── config.json           # Job search config
+├── saved_jobs.json       # Stored favorites
+├── saved_pdfs/           # Exported job PDFs
+├── .env                  # Secrets and API keys
+├── requirements.txt      # Python dependencies
 ```
 
-### 2. Setup Python Environment
+---
+
+### ⚙️ Setup Instructions
+
+1. **Clone or copy the bot files** into your desired directory.
+2. **Install dependencies**:
+
 ```bash
-python3 -m venv venv
-source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 3. Create Necessary Files
+3. **Create a `.env` file** with the following keys:
 
-- `.env` – environment secrets and API keys
-- `config.json` – search parameters
-- `saved_jobs.json` – saved job storage
-- `anschreiben_vorlage.txt` – cover letter template
-- PDF files: `lebenslauf.pdf`, `zeugnisse.pdf`
-
-### 4. Run the Bot
-```bash
-python bot.py
-```
-
----
-
-## 📁 Directory Structure
-
-```
-discord-jobbot/
-│
-├── bot.py                  # Main bot logic
-├── config.json             # Search configuration
-├── saved_jobs.json         # Saved jobs storage
-├── .env                    # API keys & secrets
-├── lebenslauf.pdf          # Resume PDF
-├── zeugnisse.pdf           # Certificates PDF
-├── anschreiben_vorlage.txt # Cover letter template
-├── saved_pdfs/             # Exported job PDFs
-└── logs/                   # Daily logs
-```
-
----
-
-## ⚙️ Configuration
-
-### `.env` sample
-
-```
+```env
 DISCORD_BOT_TOKEN=your_discord_token
 DISCORD_GUILD_ID=your_guild_id
-DISCORD_CHANNEL_ID=your_channel_id
-
-ERROR_WEBHOOK_URL=https://discord.com/api/webhooks/...
-JOB_WEBHOOK_URL=https://discord.com/api/webhooks/...
+DISCORD_CHANNEL_ID=channel_id_for_jobs
+ERROR_WEBHOOK_URL=your_error_webhook
+JOB_WEBHOOK_URL=webhook_for_job_posts
 
 SMTP_HOST=smtp.example.com
 SMTP_PORT=587
-SMTP_USER=your@email.com
-SMTP_PASSWORD=your_password
-SENDER_NAME=Max Mustermann
+SMTP_USER=you@example.com
+SMTP_PASSWORD=yourpassword
+SENDER_NAME=JobBot
 
-ADZUNA_APP_ID=your_adzuna_id
-ADZUNA_APP_KEY=your_adzuna_key
+ADZUNA_APP_ID=...
+ADZUNA_APP_KEY=...
 ADZUNA_COUNTRY=de
 
+OPENAI_API_KEY=...
 OPENAI_MODEL=gpt-4o
-OPENAI_API_KEY=your_openai_key
 ```
 
-### `config.json` sample
+4. **Set up `config.json`**:
 
 ```json
 {
   "location": "Berlin",
   "radius": 50,
   "keywords": ["linux", "python"],
-  "work_type": "all",
-  "execution_time": "12:00"
+  "work_type": "remote"
 }
 ```
 
-### `saved_jobs.json` (example)
-```json
-[
-  {
-    "id": "123456",
-    "title": "Linux Admin",
-    "company": "Example AG",
-    "location": "Berlin",
-    "url": "https://..."
-  }
-]
+5. **Start the bot**:
+
+```bash
+python bot.py
 ```
 
 ---
 
-## 💬 Commands
+### 🤖 Usage Overview
 
-| Command | Description |
-|--------|-------------|
-| `/favorites` | Show saved jobs |
-| `/update_config` | Change search parameters |
-| `/config` | Show current search config |
-| `/set_time` | Set daily job search time |
-| `/search_jobs_days` | Search for jobs from the last X days |
-| `/search_jobs_dropdown` | Search jobs via dropdown selector |
-| `/clear_favorites` | Remove all saved jobs |
-| `/send_testmail` | Send a test application |
-| `/clear_chat` | Delete previous bot messages |
+* `/search_jobs_days tage:3` ➔ Fetch jobs from last 3 days
+* `/favourites` ➔ Show saved jobs with action buttons
+* `/update_config` ➔ Update search location, radius, keywords
+* `/update_work_type` ➔ Set preferred work type (onsite/hybrid/remote)
+* `/clear_chat` ➔ Removes old job messages from chat
+* Buttons:
 
----
-
-## 🤖 Usage Notes
-
-- PDF generation uses OpenAI to summarize job descriptions
-- Email applications include attachments and custom cover letter
-- Ensure all required files and secrets are present
+  * "⭐ Speichern" to save job
+  * "📄 PDF exportieren" to generate a job summary
+  * "✉ Bewerbung vorbereiten" if company email is available
 
 ---
 
-## 📬 License
+### 🔹 Kununu Integration
 
-MIT — use freely, but give credit :)
+Jobs now include an optional line:
+
+```
+✨ Kununu-Rating: ⭐ 3.9/5
+```
+
+This is fetched live and displayed in the job embed using company name normalization.
+
+---
+
+### ☕ Contribution
+
+Feel free to open an issue or fork the repo and add features!
+
+---
+
+### ⚠️ Notes
+
+* Make sure all `.env` variables are correctly set.
+* OpenAI API key must have access to the model you use (`gpt-4o` recommended).
+* Discord slash commands may require a few minutes to sync on first launch.
+
+---
+
+**Enjoy automated job hunting with JobBot!**
