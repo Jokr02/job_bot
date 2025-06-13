@@ -27,6 +27,9 @@ ADZUNA_COUNTRY = os.getenv("ADZUNA_COUNTRY", "de")
 ERROR_WEBHOOK_URL = os.getenv("ERROR_WEBHOOK_URL")
 
 intents = discord.Intents.default()
+intents.message_content = True
+intents.guilds = True
+intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 tree = bot.tree
 
