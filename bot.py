@@ -264,6 +264,7 @@ async def on_ready():
                 await channel.send("✅ Der Bot ist jetzt online und bereit.")
         except Exception as e:
             print(f"Fehler beim Senden der Startnachricht: {e}")
+print(f"Slash commands registered in tree: {[cmd.name for cmd in tree.get_commands()]}")
 
 
 
