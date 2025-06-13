@@ -7,6 +7,9 @@ import os
 from email.message import EmailMessage
 from fpdf import FPDF
 from pathlib import Path
+from discord.ui import View, Button, Select
+
+
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -93,8 +96,7 @@ from bs4 import BeautifulSoup
 
 import discord
 from discord.ext import commands
-from discord import app_commands
-from discord.ui import View, Button
+from discord import app_commands, Interaction
 from dotenv import load_dotenv
 
 # -------- Logging --------
@@ -133,6 +135,10 @@ def load_config():
             json.dump(default, f, indent=2)
     with open(CONFIG_FILE) as f:
         return json.load(f)
+
+def save_config(config: dict):
+    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=2)
 
 def load_seen_jobs():
     if not os.path.exists(JOBS_SEEN_FILE):
@@ -405,6 +411,35 @@ class FavoriteActionsView(View):
             else:
                 await interaction.followup.send("❌ PDF konnte nicht erstellt werden.", ephemeral=True)
 
+class WorkTypeSelect(Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="Alle", value="all", description="Keine Einschränkung (Standard)"),
+            discord.SelectOption(label="Vor Ort", value="onsite"),
+            discord.SelectOption(label="Hybrid", value="hybrid"),
+            discord.SelectOption(label="Home Office", value="remote")
+        ]
+
+        super().__init__(placeholder="Arbeitsmodell wählen...", options=options)
+
+    async def callback(self, interaction: Interaction):
+        selected = self.values[0]
+        config = load_config()
+
+        # Lege bei "all" trotzdem leeren String in config ab
+        config["work_type"] = "" if selected == "all" else selected
+        save_config(config)
+
+        label = "Alle" if selected == "all" else selected.capitalize()
+        await interaction.response.send_message(f"✅ Arbeitsmodell gespeichert: **{label}**", ephemeral=True)
+
+
+
+class WorkTypeView(View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(WorkTypeSelect())
+
 
 
 class JobActionsView(View):
@@ -574,28 +609,23 @@ async def favorites(interaction: discord.Interaction):
 @app_commands.describe(
     location="Ort der Jobsuche",
     radius="Suchradius in Kilometern",
-    keywords="Kommagetrennte Keywords (z. B. linux, vmware)",
-    work_type="Arbeitsform: all, remote, hybrid, onsite"
+    keywords="Kommagetrennte Keywords (z. B. linux, vmware)"
 )
-async def update_config(interaction: discord.Interaction, location: str, radius: int, keywords: str, work_type: str = "all"):
+async def update_config(interaction: discord.Interaction, location: str, radius: int, keywords: str):
     config = load_config()
     config["location"] = location
     config["radius"] = radius
     config["keywords"] = [kw.strip() for kw in keywords.split(",")]
-    config["work_type"] = work_type
-    with open(CONFIG_FILE, "w") as f:
-        json.dump(config, f, indent=2)
-    await interaction.response.send_message("✅ Konfiguration aktualisiert!", ephemeral=True)
 
-    jobs = load_saved_jobs()
-    if not jobs:
-        await interaction.response.send_message("📭 Keine gespeicherten Jobs gefunden.", ephemeral=True)
-        return
+    save_config(config)
 
-    msg_lines = []
-    for job in jobs[-10:]:
-        msg_lines.append(f"💼 **{job['title']}**\n🏢 {job['company']}\n📍 {job['location']}\n🔗 {job['url']}")
-    await interaction.response.send_message("\n\n".join(msg_lines), ephemeral=True)
+    response = f"✅ Konfiguration aktualisiert!\n\n" \
+               f"📍 Ort: `{location}`\n" \
+               f"📏 Radius: `{radius} km`\n" \
+               f"🔎 Keywords: `{', '.join(config['keywords'])}`"
+
+    await interaction.response.send_message(response, ephemeral=True)
+
 
 @tree.command(name="clear_favorites", description="Löscht alle gespeicherten Jobs")
 async def clear_favorites(interaction: discord.Interaction):
@@ -683,6 +713,15 @@ class JobDaysView(discord.ui.View):
 @tree.command(name="search_jobs_dropdown", description="Starte Jobsuche per Auswahl der Tage", guild=discord.Object(id=1380610208602001448))
 async def search_jobs_dropdown(interaction: discord.Interaction):
     await interaction.response.send_message("Bitte wähle den Zeitraum für die Jobsuche:", view=JobDaysView(), ephemeral=True)
+
+@tree.command(name="update_work_type", description="Wähle das Arbeitsmodell (remote, hybrid, onsite)")
+async def update_work_type(interaction: Interaction):
+    await interaction.response.send_message(
+        "Bitte wähle dein gewünschtes Arbeitsmodell:",
+        view=WorkTypeView(),
+        ephemeral=True
+    )
+
 
 @bot.event
 
@@ -798,7 +837,7 @@ async def favorites(interaction: discord.Interaction):
         embed.add_field(name="Link", value=job.get("url", ""), inline=False)
         await interaction.channel.send(embed=embed, view=FavoriteActionsView(job))
     await interaction.response.send_message("✅ Favoriten geladen.", ephemeral=True)
-    
+
 from discord import app_commands
 from discord.ext import commands
 
