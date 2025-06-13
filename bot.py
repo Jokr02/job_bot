@@ -8,7 +8,7 @@ from email.message import EmailMessage
 from fpdf import FPDF
 from pathlib import Path
 from discord.ui import View, Button, Select
-
+import re 
 
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -217,33 +217,44 @@ def highlight_keywords(text, keywords):
     for kw in sorted(keywords, key=len, reverse=True):
         text = re.sub(rf"(?i)\\b({re.escape(kw)})\\b", r"**\\1**", text)
     return text
-
+kununu_cache = {}
 def fetch_kununu_rating(company_name):
+    if company_name in kununu_cache:
+        return kununu_cache[company_name]
+
     try:
-        base_url = "https://www.kununu.com"
-        query = urllib.parse.quote(company_name)
-        search_url = f"{base_url}/de/suche?query={query}"
-        headers = {"User-Agent": "Mozilla/5.0"}
-        r = requests.get(search_url, headers=headers, timeout=10)
-        soup = BeautifulSoup(r.text, "html.parser")
+        url = f"https://www.kununu.com/de/suche?term={company_name}"
+        response = requests.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+        soup = BeautifulSoup(response.text, "html.parser")
 
-        profile_link = soup.select_one("a[data-test='search-result-link']")
-        if not profile_link:
+        # Versuche, Link zur Unternehmensseite zu finden
+        first_result = soup.select_one("a.sc-1f9313aa-0")
+        if not first_result:
+            logger.info(f"⚠️ Kein Kununu-Treffer für {company_name}")
+            kununu_cache[company_name] = None
             return None
 
-        kununu_url = base_url + profile_link["href"]
-        profile_resp = requests.get(kununu_url, headers=headers, timeout=10)
-        profile_soup = BeautifulSoup(profile_resp.text, "html.parser")
-        rating_el = profile_soup.select_one("div[data-test='score-value']")
+        company_url = f"https://www.kununu.com{first_result['href']}"
+        rating_page = requests.get(company_url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
+        rating_soup = BeautifulSoup(rating_page.text, "html.parser")
+        rating_el = rating_soup.select_one("span[data-test='score-box-OverallScore']")
 
-        if not rating_el:
+        if rating_el:
+            score = rating_el.text.strip()
+            result = f"Kununu-Rating: ⭐ {score}/5"
+            kununu_cache[company_name] = result
+            return result
+        else:
+            logger.info(f"⚠️ Kein Rating-Element für {company_name}")
+            kununu_cache[company_name] = None
             return None
-
-        rating = rating_el.text.strip()
-        return f"{rating} ⭐ – {kununu_url}"
     except Exception as e:
-        logger.warning(f"Kununu fetch failed: {e}")
+        logger.warning(f"Kununu-Fehler für {company_name}: {e}")
         return None
+
+def normalize_company_name(name: str) -> str:
+    # Entfernt Zusätze wie "GmbH", "AG", "KG", "mbH" usw.
+    return re.sub(r"\b(gmbh|ag|kg|mbh|inc|ltd)\b", "", name, flags=re.IGNORECASE).strip()
 
 def fetch_raw_job_text(url: str) -> str:
     try:
@@ -575,10 +586,15 @@ async def search_jobs(days: int = 10):
         channel = await bot.fetch_channel(CHANNEL_ID)
         for job in all_jobs:
             desc = f"💼 **{highlight_keywords(job['title'], keywords)}**\n🏢 {job['company']}\n📍 {job['location']}\n🔗 {job['url']}"
-            kununu = fetch_kununu_rating(job['company']) if job['company'] else None
+            
+            # Kununu-Rating versuchen (alle Quellen!)
+            company_clean = normalize_company_name(job['company'])
+            kununu = fetch_kununu_rating(normalize_company_name(job['company'])) if job.get('company') else None
             if kununu:
                 desc += f"\n✨ {kununu}"
+
             await channel.send(desc, view=JobActionsView(job))
+
     except Exception as e:
         logger.error(f"Fehler beim Senden an Discord: {e}")
         send_error_to_webhook(f"Fehler beim Senden an Discord: {e}")
