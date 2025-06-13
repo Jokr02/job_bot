@@ -238,22 +238,32 @@ def send_application(job):
 
 
 @bot.event
+@bot.event
 async def on_ready():
     guild_id = os.getenv("DISCORD_GUILD_ID")
-    if guild_id:
-        guild = discord.Object(id=int(guild_id))
-        synced = await tree.sync(guild=guild)
-        print(f"Synchronized {len(synced)} commands with guild {guild_id}")
-    else:
-        synced = await tree.sync()
-        print(f"Synchronized {len(synced)} global commands")
+    synced = []
+
+    try:
+        if guild_id:
+            guild = discord.Object(id=int(guild_id))
+            synced = await tree.sync(guild=guild)
+            print(f"Synchronized {len(synced)} commands with guild {guild_id}: {[cmd.name for cmd in synced]}")
+        else:
+            synced = await tree.sync()
+            print(f"Synchronized {len(synced)} global commands: {[cmd.name for cmd in synced]}")
+    except Exception as e:
+        print(f"Error during command sync: {e}")
 
     print(f"Bot logged in as {bot.user}")
     channel_id = os.getenv("DISCORD_CHANNEL_ID")
     if channel_id:
-        channel = bot.get_channel(int(1382089459339886742))
-        if channel:
-            await channel.send("✅ Der Bot ist jetzt online und bereit.")
+        try:
+            channel = bot.get_channel(int(channel_id))
+            if channel:
+                await channel.send("✅ Der Bot ist jetzt online und bereit.")
+        except Exception as e:
+            print(f"Fehler beim Senden der Startnachricht: {e}")
+
 
 
 bot.run(DISCORD_TOKEN)
