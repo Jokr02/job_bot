@@ -163,6 +163,10 @@ def fetch_arbeitsagentur_jobs(params):
             requests.post(ERROR_WEBHOOK_URL, json={"content": f"Arbeitsagentur API Error: {str(e)}"})
     return []
 
+@tree.command(name="ping", description="Antwortet mit Pong!")
+async def ping(interaction: Interaction):
+    await interaction.response.send_message("Pong!", ephemeral=True)
+
 @tree.command(name="favorites", description="Show favorite jobs")
 async def favorites(interaction: Interaction):
     data = load_user_data(interaction.user.id)
@@ -231,9 +235,7 @@ def send_application(job):
         server.starttls()
         server.login(SMTP_USER, SMTP_PASSWORD)
         server.send_message(msg)
-@tree.command(name="ping", description="Antwortet mit Pong!")
-async def ping(interaction: Interaction):
-    await interaction.response.send_message("Pong!", ephemeral=True)
+
 
 @bot.event
 async def on_ready():
