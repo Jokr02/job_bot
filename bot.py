@@ -16,6 +16,7 @@ load_dotenv()
 
 DISCORD_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
 DISCORD_CHANNEL_ID = os.getenv("DISCORD_CHANNEL_ID")
+DISCORD_GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 SMTP_HOST = os.getenv("SMTP_HOST")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
 SMTP_USER = os.getenv("SMTP_USER")
@@ -36,15 +37,12 @@ tree = bot.tree
 user_data_path = "user_data"
 os.makedirs(user_data_path, exist_ok=True)
 
-
 def get_user_file(user_id):
     return os.path.join(user_data_path, f"{user_id}.json")
-
 
 def save_user_data(user_id, data):
     with open(get_user_file(user_id), 'w') as f:
         json.dump(data, f)
-
 
 def load_user_data(user_id):
     path = get_user_file(user_id)
@@ -60,7 +58,6 @@ def load_user_data(user_id):
             "working_model": "",
             "favorites": []
         }
-
 
 @tree.command(name="set_parameters", description="Set job search parameters")
 @app_commands.describe(
@@ -82,14 +79,12 @@ async def set_parameters(interaction: Interaction, location: str, radius: int, k
     save_user_data(interaction.user.id, data)
     await interaction.response.send_message("Parameters saved.", ephemeral=True)
 
-
 @tree.command(name="search_jobs", description="Search for jobs with saved parameters")
 async def search_jobs(interaction: Interaction):
     user_id = interaction.user.id
     data = load_user_data(user_id)
     adzuna_jobs = fetch_adzuna_jobs(data)
     arbeitsagentur_jobs = fetch_arbeitsagentur_jobs(data)
-
     jobs = (adzuna_jobs or []) + (arbeitsagentur_jobs or [])
 
     if not jobs:
@@ -115,7 +110,6 @@ async def search_jobs(interaction: Interaction):
         )
     await interaction.response.send_message("Jobs listed above.", ephemeral=True)
 
-
 def fetch_adzuna_jobs(params):
     url = f"https://api.adzuna.com/v1/api/jobs/{ADZUNA_COUNTRY}/search/1"
     query = {
@@ -140,7 +134,6 @@ def fetch_adzuna_jobs(params):
             } for j in data.get('results', [])
         ]
     return []
-
 
 def fetch_arbeitsagentur_jobs(params):
     try:
@@ -169,7 +162,6 @@ def fetch_arbeitsagentur_jobs(params):
         if ERROR_WEBHOOK_URL:
             requests.post(ERROR_WEBHOOK_URL, json={"content": f"Arbeitsagentur API Error: {str(e)}"})
     return []
-
 
 @tree.command(name="favorites", description="Show favorite jobs")
 async def favorites(interaction: Interaction):
@@ -206,6 +198,9 @@ async def favorites(interaction: Interaction):
         )
     await interaction.response.send_message("Favorites listed.", ephemeral=True)
 
+@tree.command(name="debug_guild_id", description="Zeigt deine GUILD-ID")
+async def debug_guild_id(interaction: Interaction):
+    await interaction.response.send_message(f"Guild ID: `{interaction.guild_id}`", ephemeral=True)
 
 def send_application(job):
     msg = MIMEMultipart()
@@ -237,11 +232,13 @@ def send_application(job):
         server.login(SMTP_USER, SMTP_PASSWORD)
         server.send_message(msg)
 
-
 @bot.event
 async def on_ready():
-    await tree.sync()
+    guild = discord.Object(id=int(1380610208602001448))
+    await tree.sync(guild=guild)
     print(f"Bot logged in as {bot.user}")
-
+    channel = bot.get_channel(int(DISCORD_CHANNEL_ID))
+    if channel:
+        await channel.send("✅ Der Bot ist jetzt online und bereit.")
 
 bot.run(DISCORD_TOKEN)
