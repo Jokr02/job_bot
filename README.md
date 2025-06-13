@@ -73,12 +73,13 @@ python bot.py
 -  Necessary permissions in your server (Send Messages, Manage Messages, Use Slash Commands)
 
 📌 Slash Commands
+```
 /search_jobs_days days:X – find jobs from the past X days
 
 /favorites – show saved jobs with action buttons
 
 /clear_chat – remove bot messages from channel
-
+```
 📦 Export Options
 Save jobs as favorites
 
