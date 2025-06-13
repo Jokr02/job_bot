@@ -233,12 +233,23 @@ def send_application(job):
         server.send_message(msg)
 
 @bot.event
+@bot.event
 async def on_ready():
-    guild = discord.Object(id=int(DISCORD_GUILD_ID))
-    await tree.sync(guild=guild)
+    guild_id = os.getenv("DISCORD_GUILD_ID")
+    if guild_id:
+        guild = discord.Object(id=int(guild_id))
+        synced = await tree.sync(guild=guild)
+        print(f"Synchronized {len(synced)} commands with guild {guild_id}")
+    else:
+        synced = await tree.sync()
+        print(f"Synchronized {len(synced)} global commands")
+
     print(f"Bot logged in as {bot.user}")
-    channel = bot.get_channel(int(DISCORD_CHANNEL_ID))
-    if channel:
-        await channel.send("✅ Der Bot ist jetzt online und bereit.")
+    channel_id = os.getenv("DISCORD_CHANNEL_ID")
+    if channel_id:
+        channel = bot.get_channel(int(channel_id))
+        if channel:
+            await channel.send("✅ Der Bot ist jetzt online und bereit.")
+
 
 bot.run(DISCORD_TOKEN)
