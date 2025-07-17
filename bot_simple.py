@@ -55,6 +55,34 @@ def load_seen():
 def save_seen(ids):
     with open(SEEN_FILE, "w") as f:
         json.dump(list(ids), f)
+def fetch_kununu_rating(company_name):
+    import re
+    from bs4 import BeautifulSoup
+
+    def clean_name(name):
+        return re.sub(r"\b(gmbh|mbh|ag|kg|se|inc|ltd)\b", "", name, flags=re.IGNORECASE).strip()
+
+    try:
+        name = clean_name(company_name)
+        url = f"https://www.kununu.com/de/suche?term={name}"
+        headers = {"User-Agent": "Mozilla/5.0"}
+        search_response = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(search_response.text, "html.parser")
+
+        link = soup.select_one("a.sc-1f9313aa-0")
+        if not link:
+            return None
+
+        detail_url = f"https://www.kununu.com{link['href']}"
+        detail_response = requests.get(detail_url, headers=headers, timeout=10)
+        detail_soup = BeautifulSoup(detail_response.text, "html.parser")
+        rating = detail_soup.select_one("span[data-test='score-box-OverallScore']")
+
+        if rating:
+            return f"⭐ {rating.text.strip()}/5"
+    except Exception as e:
+        print(f"[Kununu Fehler] {e}")
+    return None
 
 async def search_and_send_jobs():
     await bot.wait_until_ready()
@@ -80,7 +108,7 @@ async def search_and_send_jobs():
             data = r.json()
             for job in data.get("results", []):
                 job_id = job.get("id")
-                if job_id in seen:
+                if job_id in new_seen:
                     continue
 
                 embed = discord.Embed(
@@ -92,6 +120,9 @@ async def search_and_send_jobs():
 
                 embed.add_field(name="Firma", value=job.get("company", {}).get("display_name", "Unbekannt"), inline=True)
                 embed.add_field(name="Ort", value=job.get("location", {}).get("display_name", "Unbekannt"), inline=True)
+                rating = fetch_kununu_rating(job.get("company", ""))
+                if rating:
+                    embed.add_field(name="Kununu", value=rating, inline=True)
 
                 await channel.send(embed=embed)
                 new_seen.add(job_id)
