@@ -114,8 +114,7 @@ async def search_and_send_jobs():
                 embed = discord.Embed(
                     title=job.get("title", "Ohne Titel"),
                     url=job.get("redirect_url", ""),
-                    color=0x3498db,
-                    description="🔍 Quelle: **Adzuna**"
+                    color=discord.colors.magenta,
                 )
 
                 embed.add_field(name="Firma", value=job.get("company", {}).get("display_name", "Unbekannt"), inline=True)
@@ -136,7 +135,7 @@ async def search_and_send_jobs():
 async def job_loop():
     while True:
         await search_and_send_jobs()
-        await asyncio.sleep(600)  # Alle 10 Minuten
+        await asyncio.sleep(1800)  # Alle 10 Minuten
 @tree.command(name="config", description="Konfiguriere die Jobsuche")
 @app_commands.describe(
     location="Ort der Jobsuche",
