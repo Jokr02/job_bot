@@ -86,7 +86,7 @@ def fetch_kununu_rating(company_name):
 
 async def search_and_send_jobs():
     await bot.wait_until_ready()
-    channel = bot.get_channel(CHANNEL_ID)
+    channel = bot.fetch_channel(CHANNEL_ID)
     config = load_config()
     seen = load_seen()
     new_seen = set(seen)
